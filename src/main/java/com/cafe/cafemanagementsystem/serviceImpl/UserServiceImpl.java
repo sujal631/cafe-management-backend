@@ -24,6 +24,7 @@ import com.cafe.cafemanagementsystem.entity.User;
 import com.cafe.cafemanagementsystem.repo.UserRepository;
 import com.cafe.cafemanagementsystem.service.UserService;
 import com.cafe.cafemanagementsystem.utils.CafeUtils;
+import com.cafe.cafemanagementsystem.utils.EmailUtils;
 import com.cafe.cafemanagementsystem.wrapper.UserWrapper;
 
 import jakarta.transaction.Transactional;
@@ -51,6 +52,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private EmailUtils emailUtils;
 
     // user signup logic
     @Override
@@ -178,7 +182,39 @@ public class UserServiceImpl implements UserService {
         return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private void sendStatusUpdateMailToAllAdmins(String status, String email, List<String> allAdmins) {
+    // sending user status updated email to all admins
+    private void sendStatusUpdateMailToAllAdmins(String status, String userEmail, List<String> allAdmins) {
+        // removing the current user so that he/she doesn't get the email twice
+        allAdmins.remove(this.jwtAuthenticationFilter.getCurrentUser());
+
+        String subject;
+        String messageBody;
+
+        // email to all fellow admins if the user is approved by admin
+        if (status != null && status.equalsIgnoreCase("true")) {
+            subject = "Account Approval Notification";
+            messageBody = String.format(
+                    "Dear Administrator,\n\n" +
+                            "We would like to inform you that the account associated with the email address \"%s\" has been approved. The approval was granted by the administrator with the email address \"%s\".\n\n"
+                            +
+                            "Regards,\n" +
+                            "Cafe Management System Team",
+                    userEmail, this.jwtAuthenticationFilter.getCurrentUser());
+        }
+        // email to add fellow admins if the user is disabled by admin
+        else {
+            subject = "Account Disabling Notification";
+            messageBody = String.format(
+                    "Dear Administrator,\n\n" +
+                            "We would like to inform you that the account associated with the email address \"%s\" has been disabled. This action was taken by the administrator with the email address \"%s\".\n\n"
+                            +
+                            "Regards,\n" +
+                            "Cafe Management System Team",
+                    userEmail, this.jwtAuthenticationFilter.getCurrentUser());
+        }
+
+        this.emailUtils.sendSimpleMessage(this.jwtAuthenticationFilter.getCurrentUser(), subject, messageBody,
+                allAdmins);
     }
 
 }
