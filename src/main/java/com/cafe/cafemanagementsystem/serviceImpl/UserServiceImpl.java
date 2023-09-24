@@ -1,8 +1,12 @@
 package com.cafe.cafemanagementsystem.serviceImpl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,12 +17,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.cafe.cafemanagementsystem.JWT.CustomUserDetailsService;
+import com.cafe.cafemanagementsystem.JWT.JwtAuthenticationFilter;
 import com.cafe.cafemanagementsystem.JWT.JwtUtil;
 import com.cafe.cafemanagementsystem.constants.CafeConstants;
 import com.cafe.cafemanagementsystem.entity.User;
 import com.cafe.cafemanagementsystem.repo.UserRepository;
 import com.cafe.cafemanagementsystem.service.UserService;
 import com.cafe.cafemanagementsystem.utils.CafeUtils;
+import com.cafe.cafemanagementsystem.wrapper.UserWrapper;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +49,10 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    // user signup logic
     @Override
     public ResponseEntity<String> signUp(Map<String, String> requestMap) {
         log.info("Inside signup {} ", requestMap);
@@ -87,6 +97,7 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
+    // user login logic
     @Override
     public ResponseEntity<String> login(Map<String, String> requestMap) {
         log.info("Inside login {} ");
@@ -114,6 +125,60 @@ public class UserServiceImpl implements UserService {
         }
         return CafeUtils.getResponseEntity(CafeConstants.BAD_CREDENTIALS, HttpStatus.BAD_REQUEST);
 
+    }
+
+    // get all users by admin logic
+    @Override
+    public ResponseEntity<List<UserWrapper>> getAllUsers() {
+        try {
+            // checking if user is admin or not
+            if (this.jwtAuthenticationFilter.isAdmin()) {
+                List<User> users = this.userRepository.findAll();
+                List<UserWrapper> userWrappers = new ArrayList<>();
+                for (User user : users) {
+                    if (!user.getRole().equalsIgnoreCase("admin")) {
+                        UserWrapper userWrapper = new UserWrapper();
+                        BeanUtils.copyProperties(user, userWrapper);
+                        userWrappers.add(userWrapper);
+                    }
+                }
+                return new ResponseEntity<List<UserWrapper>>(userWrappers, HttpStatus.OK);
+            }
+            return new ResponseEntity<List<UserWrapper>>(new ArrayList<>(), HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<List<UserWrapper>>(new ArrayList<>(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // update user status from false to true logic
+    @Override
+    public ResponseEntity<String> updateUserStatus(Map<String, String> requestMap) {
+        try {
+            // checking if user is admin or not
+            if (this.jwtAuthenticationFilter.isAdmin()) {
+                // checking if the user exists or not
+                Optional<User> optional = this.userRepository.findById(Integer.parseInt(requestMap.get("id")));
+                if (optional.isPresent()) {
+                    // if user exists, then update the status
+                    this.userRepository.updateUserStatus(requestMap.get("status"),
+                            Integer.parseInt(requestMap.get("id")));
+                    sendStatusUpdateMailToAllAdmins(requestMap.get("status"), optional.get().getEmail(),
+                            this.userRepository.getAllAdmins());
+                    return CafeUtils.getResponseEntity(CafeConstants.STATUS_UPDATE_SUCCESSFUL, HttpStatus.OK);
+                } else {
+                    // return message when user doesn't exist
+                    return CafeUtils.getResponseEntity(CafeConstants.USER_DOES_NOT_EXIST, HttpStatus.NOT_FOUND);
+                }
+            }
+            return CafeUtils.getResponseEntity(CafeConstants.UNAUTHORIZED_USER, HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private void sendStatusUpdateMailToAllAdmins(String status, String email, List<String> allAdmins) {
     }
 
 }
