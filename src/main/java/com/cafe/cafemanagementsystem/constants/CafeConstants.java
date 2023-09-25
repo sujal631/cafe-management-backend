@@ -13,5 +13,7 @@ public class CafeConstants {
     public static final String INCORRECT_OLD_PASSWORD = "The old password you entered is incorrect. Please verify and try again.";
     public static final String PASSWORD_UPDATE_SUCCESSFUL = "Your password has been updated successfully.";
     public static final String ADD_CATEGORY_SUCCESSFUL = "The category has been added successfully.";
+    public static final String CATEGORY_DOES_NOT_EXIST = "No category matches the provided ID. Please verify and try again.";
+    public static final String CATEGORY_UPDATE_SUCCESSFUL = "The category has been updated successfully.";
 
 }
