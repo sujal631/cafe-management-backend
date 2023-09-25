@@ -15,5 +15,10 @@ public class CafeConstants {
     public static final String ADD_CATEGORY_SUCCESSFUL = "The category has been added successfully.";
     public static final String CATEGORY_DOES_NOT_EXIST = "No category matches the provided ID. Please verify and try again.";
     public static final String CATEGORY_UPDATE_SUCCESSFUL = "The category has been updated successfully.";
+    public static final String ADD_PRODUCT_SUCCESSFUL = "The product has been added successfully.";
+    public static final String PRODUCT_DOES_NOT_EXIST = "No product matches the provided ID. Please verify and try again.";
+    public static final String PRODUCT_UPDATE_SUCCESSFUL = "The product has been updated successfully.";
+    public static final String PRODUCT_DELETE_SUCCESSFUL = "The product has been deleted successfully.";
+    public static final String PRODUCT_STATUS_UPDATE_SUCCESSFUL = "The product status has been updated successfully.";
 
 }

@@ -36,7 +36,7 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             // only admin can add category which is why checking if user is admin
             if (jwtAuthenticationFilter.isAdmin()) {
-                if (validateCategory(requestMap, false)) {
+                if (validateCategoryMap(requestMap, false)) {
                     this.categoryRepository.save(getCategoryFromMap(requestMap, false));
                     return CafeUtils.getResponseEntity(CafeConstants.ADD_CATEGORY_SUCCESSFUL, HttpStatus.OK);
                 }
@@ -49,7 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
         return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private boolean validateCategory(Map<String, String> requestMap, boolean validateId) {
+    private boolean validateCategoryMap(Map<String, String> requestMap, boolean validateId) {
         if (requestMap.containsKey("category_name")) {
             if (requestMap.containsKey("category_id") && validateId) {
                 return true;
@@ -74,7 +74,7 @@ public class CategoryServiceImpl implements CategoryService {
     public ResponseEntity<List<Category>> getAllCategories(String filterValue) {
         try {
             if (!Strings.isNullOrEmpty(filterValue) && filterValue.equalsIgnoreCase("true")) {
-                return new ResponseEntity<List<Category>>(this.categoryRepository.findAll(), HttpStatus.OK);
+                return new ResponseEntity<List<Category>>(this.categoryRepository.getAllCategories(), HttpStatus.OK);
             }
             return new ResponseEntity<List<Category>>(this.categoryRepository.findAll(), HttpStatus.OK);
         } catch (Exception e) {
@@ -87,7 +87,7 @@ public class CategoryServiceImpl implements CategoryService {
     public ResponseEntity<String> updateCategory(Map<String, String> requestMap) {
         try {
             if (jwtAuthenticationFilter.isAdmin()) {
-                if (validateCategory(requestMap, true)) {
+                if (validateCategoryMap(requestMap, true)) {
                     Optional<Category> optional = this.categoryRepository
                             .findById(Integer.parseInt(requestMap.get("category_id")));
                     if (optional.isPresent()) {
