@@ -155,7 +155,7 @@ public class UserServiceImpl implements UserService {
         return new ResponseEntity<List<UserWrapper>>(new ArrayList<>(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // update user status from false to true logic
+    // update user status from false to true or vice versa logic
     @Override
     public ResponseEntity<String> updateUserStatus(Map<String, String> requestMap) {
         try {
@@ -215,6 +215,70 @@ public class UserServiceImpl implements UserService {
 
         this.emailUtils.sendSimpleMessage(this.jwtAuthenticationFilter.getCurrentUser(), subject, messageBody,
                 allAdmins);
+    }
+
+    // using this method to move from one page to another by validating user
+    @Override
+    public ResponseEntity<String> checkToken() {
+        return CafeUtils.getResponseEntity("true", HttpStatus.OK);
+    }
+
+    // change password logic
+    @Override
+    public ResponseEntity<String> changePassword(Map<String, String> requestMap) {
+        try {
+            log.info("Inside changePassword: {} ", requestMap);
+            // checking if the user exists or not
+            User user = this.userRepository.findByEmail(this.jwtAuthenticationFilter.getCurrentUser());
+            // if user exists
+            if (user != null) {
+
+                String oldPasswordFromRequest = requestMap.get("oldPassword");
+                String newPasswordFromRequest = requestMap.get("newPassword");
+                String storedPassword = user.getPassword();
+
+                log.info("Old Password from Request: {}", oldPasswordFromRequest);
+                log.info("New Password from Request: {}", newPasswordFromRequest);
+                log.info("Stored Password: {}", storedPassword);
+
+                // Check if the hashed version of the old password matches the stored password
+                if (passwordEncoder.matches(requestMap.get("oldPassword"), user.getPassword())) {
+                    log.info("Checking old password and stored password: {} ",
+                            passwordEncoder.matches(requestMap.get("oldPassword"), user.getPassword()));
+                    // if matches, hash the new password before saving
+                    user.setPassword(passwordEncoder.encode(requestMap.get("newPassword")));
+                    this.userRepository.save(user);
+                    // return successful message
+                    log.info("Password successfully updated in the database.");
+                    return CafeUtils.getResponseEntity(CafeConstants.PASSWORD_UPDATE_SUCCESSFUL, HttpStatus.OK);
+                }
+                // if user password and user's old password doesn't match, then return the error
+                // message
+                return CafeUtils.getResponseEntity(CafeConstants.INCORRECT_OLD_PASSWORD, HttpStatus.BAD_REQUEST);
+            } else {
+                return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG,
+                        HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred during password change: ", e);
+            e.printStackTrace();
+        }
+        return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Override
+    public ResponseEntity<String> forgotPassword(Map<String, String> requestMap) {
+        String subject = "Password Recovery - Cafe Management System";
+        try {
+            User user = this.userRepository.findByEmail(requestMap.get("email"));
+            if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
+                emailUtils.forgotPasswordMail(user.getEmail(), subject, user.getPassword());
+            }
+            return CafeUtils.getResponseEntity("Please check your e-mail for credentials.", HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }
